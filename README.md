@@ -1,3 +1,7 @@
+## FarmaTrade
+
+![FarmaTrade Project](screenshots/FarmaTrade_LinkedIn_Thumbnail.jpg)
+
 # 🌾 FarmaTrade
 
 **FarmaTrade** is an online agricultural marketplace that connects **farmers and buyers directly**. Farmers can list crops, buyers can participate in live auctions, and the platform manages **payments, delivery, cold storage, and invoicing** in one place.
