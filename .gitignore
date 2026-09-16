@@ -24,3 +24,5 @@ dist/
 # Secrets
 *.pem
 secrets/
+
+auth-service/keys/

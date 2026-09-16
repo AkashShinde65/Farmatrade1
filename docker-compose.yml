@@ -20,6 +20,8 @@ services:
   auth-service:
     build: ./auth-service
     image: farmatrade-auth-service:latest
+    volumes:
+      - ./auth-service/keys/private_key.pem:/app/keys/private_key.pem:ro
     depends_on:
       auth-mysql:
         condition: service_healthy
@@ -32,7 +34,9 @@ services:
       DB_PASSWORD: ${AUTH_DB_PASSWORD:-change-me-auth}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-internal-token}
       OTP_SERVICE_BASE_URL: http://otp-service:8086
-      AUTH_JWT_ALLOW_EPHEMERAL_KEY: "true"
+      AUTH_JWT_ALLOW_EPHEMERAL_KEY: "false"
+      AUTH_RSA_PRIVATE_KEY_FILE: /app/keys/private_key.pem
+
       INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-Admin}
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-admin@example.com}
       INITIAL_ADMIN_MOBILE: ${INITIAL_ADMIN_MOBILE:-9000000000}
@@ -260,7 +264,11 @@ services:
     build:
       context: ./frontend
       args:
-        REACT_APP_AUTH_URL: http://localhost:8081
+        REACT_APP_AUTH_URL: ${REACT_APP_AUTH_URL:-http://localhost:8081}
+        REACT_APP_LOT_URL: ${REACT_APP_LOT_URL:-http://localhost:8082}
+        REACT_APP_BIDDING_URL: ${REACT_APP_BIDDING_URL:-http://localhost:8083}
+        REACT_APP_LOGISTICS_URL: ${REACT_APP_LOGISTICS_URL:-http://localhost:8084}
+        REACT_APP_BILLING_URL: ${REACT_APP_BILLING_URL:-http://localhost:8085}
     image: farmatrade-frontend:latest
     depends_on:
       auth-service:
