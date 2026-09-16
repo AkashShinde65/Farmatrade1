@@ -9,6 +9,11 @@ resource authApp 'Microsoft.App/containerApps@2025-01-01' = {
     managedEnvironmentId: environmentId
     configuration: {
       activeRevisionsMode: 'Single'
+      ingress: {
+        external: true
+        targetPort: 8081
+        transport: 'http'
+      }
     }
     template: {
       containers: [
@@ -36,6 +41,11 @@ resource lotApp 'Microsoft.App/containerApps@2025-01-01' = {
     managedEnvironmentId: environmentId
     configuration: {
       activeRevisionsMode: 'Single'
+      ingress: {
+        external: true
+        targetPort: 8082
+        transport: 'http'
+      }
     }
     template: {
       containers: [
@@ -63,6 +73,11 @@ resource biddingApp 'Microsoft.App/containerApps@2025-01-01' = {
     managedEnvironmentId: environmentId
     configuration: {
       activeRevisionsMode: 'Single'
+      ingress: {
+        external: true
+        targetPort: 8083
+        transport: 'http'
+      }
     }
     template: {
       containers: [
@@ -90,6 +105,11 @@ resource logisticsApp 'Microsoft.App/containerApps@2025-01-01' = {
     managedEnvironmentId: environmentId
     configuration: {
       activeRevisionsMode: 'Single'
+      ingress: {
+        external: true
+        targetPort: 8084
+        transport: 'http'
+      }
     }
     template: {
       containers: [
@@ -117,6 +137,11 @@ resource billingApp 'Microsoft.App/containerApps@2025-01-01' = {
     managedEnvironmentId: environmentId
     configuration: {
       activeRevisionsMode: 'Single'
+      ingress: {
+        external: true
+        targetPort: 8085
+        transport: 'http'
+      }
     }
     template: {
       containers: [
@@ -144,6 +169,11 @@ resource otpApp 'Microsoft.App/containerApps@2025-01-01' = {
     managedEnvironmentId: environmentId
     configuration: {
       activeRevisionsMode: 'Single'
+      ingress: {
+        external: true
+        targetPort: 8086
+        transport: 'http'
+      }
     }
     template: {
       containers: [
