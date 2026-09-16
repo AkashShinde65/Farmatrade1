@@ -9,556 +9,527 @@
 Think of it as an **"OLX for farm crops"**, enhanced with live bidding, logistics management, automated billing, and cloud deployment.
 
 ---
+# 🌾 FarmaTrade
+
+**FarmaTrade** is a full-stack agricultural marketplace that connects **farmers and buyers directly**. Farmers can list agricultural produce, buyers can participate in live auctions, and the platform manages authentication, bidding, logistics, billing, payments, and email OTP verification.
+
+> **Built with Java Spring Boot + ASP.NET Core .NET 10 microservices, React, MySQL, Docker, WebSockets, JWT, and REST APIs.**
+
+---
 
 ## 🧩 Microservices Architecture
 
-FarmaTrade is built using a **microservices architecture**, where each service is responsible for a specific business function. The services communicate over a shared Docker network and are deployed on an **AWS EC2 instance**.
+FarmaTrade follows a **microservices architecture** with **6 backend microservices**.
 
-* **auth-service — Port 8081**
+| Service               | Technology               | Port | Responsibility                                  |
+| --------------------- | ------------------------ | ---: | ----------------------------------------------- |
+| **Auth Service**      | Java + Spring Boot       | 8081 | Registration, login, JWT, roles                 |
+| **Lot Service**       | Java + Spring Boot       | 8082 | Crop lot/listing management                     |
+| **Bidding Service**   | Java + Spring Boot       | 8083 | Live auctions and real-time bidding             |
+| **Logistics Service** | Java + Spring Boot       | 8084 | Truck booking, cold storage, weather checks     |
+| **Billing Service**   | Java + Spring Boot       | 8085 | Invoice generation and Razorpay payments        |
+| **OTP Service**       | **ASP.NET Core .NET 10** | 8086 | Email OTP generation, verification and delivery |
 
-  * Handles authentication and user registration.
-  * Manages JWT tokens and user roles.
-  * Supports **Farmer, Buyer, and Admin** roles.
-
-* **lot-service — Port 8082**
-
-  * Allows farmers to create and manage crop lots.
-  * Stores crop quantity, price, and market-rate details.
-
-* **bidding-service — Port 8083**
-
-  * Provides live crop auctions.
-  * Allows buyers to place bids in real time using **WebSockets**.
-
-* **logistics-service — Port 8084**
-
-  * Manages truck booking for crop delivery.
-  * Finds nearby cold-storage facilities.
-  * Performs weather-risk checks for transportation.
-
-* **billing-service — Port 8085**
-
-  * Generates invoices after successful sales.
-  * Handles online payments through **Razorpay**.
-
-* **frontend**
-
-  * React-based web application.
-  * Provides the user interface for **farmers, buyers, and administrators**.
-  * Production build is served using **Nginx** on AWS EC2.
+The React frontend communicates with the backend services through REST APIs, while the Bidding Service uses **WebSockets/STOMP** for real-time auction updates.
 
 ---
 
-## 🛠️ Technology Stack
-
-### Backend
-
-* **Java 21**
-* **Spring Boot**
-* **Spring Security**
-* **Spring Data JPA**
-* **MySQL**
-* **Flyway**
-
-### Real-Time Communication
-
-* **WebSockets**
-* **STOMP**
-
-### Payments
-
-* **Razorpay Test/Production Integration**
-
-### Frontend
-
-* **React**
-* **React Router**
-* **Leaflet**
-
-### DevOps & Cloud Infrastructure
-
-* **Docker**
-* **Docker Compose**
-* **AWS EC2**
-* **Nginx**
-* **Linux/Ubuntu**
-* **Git/GitHub**
-
----
-
-## ☁️ AWS EC2 Deployment
-
-FarmaTrade is deployed on an **AWS EC2 Ubuntu instance**.
-
-The EC2 instance hosts:
-
-* React production frontend
-* Nginx web server
-* Auth Service
-* Lot Service
-* Bidding Service
-* Logistics Service
-* Billing Service
-* Individual MySQL containers for each microservice
-
-The backend microservices run as Docker containers and communicate using the shared Docker network:
-
-```text
-farmatrade-net
-```
-
-The frontend production build is served through **Nginx**.
-
-### Production Architecture
+## 🏗️ Architecture
 
 ```text
                          Internet
                             │
                             ▼
-                  ┌───────────────────┐
-                  │     AWS EC2       │
-                  │     Ubuntu        │
-                  │                   │
-                  │      Nginx        │
-                  │       :80         │
-                  └─────────┬─────────┘
-                            │
-                    React Frontend
-                            │
-          ┌─────────────────┼─────────────────┐
-          │                 │                 │
-          ▼                 ▼                 ▼
-     Auth :8081        Lot :8082        Bidding :8083
-          │                 │                 │
-          │                 │          WebSockets
-          │                 │                 │
-          └────────────┬────┴─────────┬───────┘
-                       │              │
-                       ▼              ▼
-                Logistics :8084   Billing :8085
-                                      │
-                                      ▼
-                                  Razorpay
+                  ┌──────────────────┐
+                  │  React Frontend  │
+                  │      :3000       │
+                  └────────┬─────────┘
+                           │
+                           ▼
+                 ┌────────────────────┐
+                 │    Auth Service    │
+                 │ Java / Spring Boot │
+                 │       :8081        │
+                 └─────────┬──────────┘
+                           │
+                 ┌─────────┴─────────┐
+                 │                   │
+                 ▼                   ▼
+        ┌────────────────┐   ┌────────────────────┐
+        │  OTP Service   │   │   Other Services   │
+        │ ASP.NET Core   │   │                    │
+        │    .NET 10     │   │ Lot :8082          │
+        │     :8086      │   │ Bidding :8083      │
+        └───────┬────────┘   │ Logistics :8084    │
+                │            │ Billing :8085      │
+                ▼            └────────────────────┘
+        Gmail SMTP
+                │
+                ▼
+         User Email Inbox
 ```
 
 ---
 
-## 🔐 AWS EC2 Security
+## 🔐 OTP Microservice — ASP.NET Core .NET 10
 
-The EC2 instance is protected using an **AWS Security Group**.
+FarmaTrade includes a dedicated **ASP.NET Core .NET 10 microservice** for email OTP authentication.
 
-Configured inbound access includes:
+### Responsibilities
 
-* **HTTP — Port 80**
-* **HTTPS — Port 443**
-* **SSH — Port 22**
+* Generate secure 6-digit OTPs
+* Store OTP records in a dedicated MySQL database
+* Hash OTP values using BCrypt
+* OTP expiry handling
+* Resend cooldown
+* OTP verification
+* Email delivery using Gmail SMTP
+* Internal service authentication
+* Health endpoint
 
-Backend service ports are exposed for the current deployment/testing environment:
-
-* **8081 — Auth**
-* **8082 — Lot**
-* **8083 — Bidding**
-* **8084 — Logistics**
-* **8085 — Billing**
-
-> For production deployment, backend ports should preferably be restricted and exposed through Nginx/API Gateway rather than publicly exposing every microservice port.
-
----
-
-## 🚀 Deployment on AWS EC2
-
-### 1. Connect to EC2
-
-```bash
-ssh -i <your-key.pem> ubuntu@<EC2_PUBLIC_IP>
-```
-
-### 2. Clone the Repository
-
-```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
-cd farmatrade-main
-```
-
-### 3. Create Shared Docker Network
-
-```bash
-docker network create farmatrade-net
-```
-
-If the network already exists, continue with the next step.
-
-### 4. Start Auth Service
-
-```bash
-cd auth-service
-docker compose -f docker-compose.dev.yml up -d --build
-```
-
-Verify:
-
-```bash
-docker compose -f docker-compose.dev.yml ps
-```
-
-Test:
-
-```bash
-curl http://localhost:8081/actuator/health
-```
-
-### 5. Start Lot Service
-
-```bash
-cd ../lot-service
-docker compose up -d --build
-```
-
-Verify:
-
-```bash
-docker compose ps
-```
-
-### 6. Start Bidding Service
-
-```bash
-cd ../bidding-service
-docker compose -f docker-compose.dev.yml up -d --build
-```
-
-Verify:
-
-```bash
-docker compose -f docker-compose.dev.yml ps
-```
-
-### 7. Start Logistics Service
-
-```bash
-cd ../logistics-service
-docker compose up -d --build
-```
-
-Verify:
-
-```bash
-docker compose ps
-```
-
-### 8. Start Billing Service
-
-Billing Service requires Razorpay configuration.
-
-Configure Razorpay credentials using environment variables or a `.env` file:
-
-```bash
-RAZORPAY_KEY_ID=<your_test_key_id>
-RAZORPAY_KEY_SECRET=<your_test_key_secret>
-RAZORPAY_WEBHOOK_SECRET=<your_webhook_secret>
-```
-
-Start Billing:
-
-```bash
-cd ../billing-service
-docker compose up -d --build
-```
-
-Verify:
-
-```bash
-docker compose ps
-```
-
----
-
-## 💻 Frontend Deployment
-
-The React application is built for production:
-
-```bash
-cd ../frontend
-npm install
-npm run build
-```
-
-The generated production files are copied to the Nginx web directory:
-
-```bash
-sudo rm -rf /var/www/farmatrade
-sudo mkdir -p /var/www/farmatrade
-sudo cp -r ~/farmatrade/frontend/build/* /var/www/farmatrade/
-```
-
-Nginx is configured to serve the React application:
-
-```bash
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-The application can then be accessed through the EC2 public IP:
+### APIs
 
 ```text
-http://<EC2_PUBLIC_IP>
+POST /api/otp/send
+POST /api/otp/verify
+GET  /health
 ```
 
----
-
-## 🔍 Verify Services on AWS EC2
-
-Check all running containers:
-
-```bash
-docker ps
-```
-
-Expected application ports:
-
-| Component         | Port |
-| ----------------- | ---: |
-| Frontend / Nginx  |   80 |
-| Auth Service      | 8081 |
-| Lot Service       | 8082 |
-| Bidding Service   | 8083 |
-| Logistics Service | 8084 |
-| Billing Service   | 8085 |
-
-Health checks:
-
-```bash
-curl http://localhost:8081/actuator/health
-curl http://localhost:8082/actuator/health
-curl http://localhost:8083/actuator/health
-curl http://localhost:8084/actuator/health
-curl http://localhost:8085/actuator/health
-```
-
-Some services may return `401` for Actuator endpoints when Spring Security protects the endpoint. In that case, verify the service through its Docker status and application logs.
-
----
-
-## 🗄️ Database Configuration
-
-Each backend service uses its own MySQL database.
-
-| Service           | MySQL Host Port |
-| ----------------- | --------------: |
-| Auth Service      |            3307 |
-| Logistics Service |            3308 |
-| Billing Service   |            3309 |
-| Lot Service       |            3310 |
-| Bidding Service   |            3311 |
-
-Each MySQL instance runs in its own Docker container, maintaining database isolation between microservices.
-
----
-
-## 🔐 Environment Variables
-
-Sensitive configuration is provided through environment variables rather than committed to source control.
-
-Examples include:
+### Communication
 
 ```text
-RAZORPAY_KEY_ID
-RAZORPAY_KEY_SECRET
-RAZORPAY_WEBHOOK_SECRET
-INTERNAL_SERVICE_TOKEN
-DB_USERNAME
-DB_PASSWORD
-AUTH_RSA_PRIVATE_KEY
-AUTH_CORS_ALLOWED_ORIGINS
+React
+  ↓
+Auth Service
+  ↓ REST
+OTP Service (.NET 10)
+  ↓
+Gmail SMTP
+  ↓
+User Email
 ```
 
-**Never commit actual credentials, private keys, database passwords, or API secrets to GitHub.**
+The OTP service owns its own database and does not share its database with the Auth Service.
+
+---
+
+## 🛠️ Technology Stack
+
+### Backend — Java
+
+* Java 21
+* Spring Boot
+* Spring Security
+* Spring Data JPA
+* Flyway
+* MySQL
+* REST APIs
+
+### Backend — .NET
+
+* **.NET 10**
+* **ASP.NET Core**
+* Entity Framework Core
+* MySQL
+* MailKit
+* BCrypt password/OTP hashing
+* REST APIs
+
+### Real-Time Communication
+
+* WebSockets
+* STOMP
+
+### Frontend
+
+* React
+* React Router
+* Leaflet
+* JavaScript
+* HTML
+* CSS
+
+### Payments
+
+* Razorpay Test/Production Integration
+
+### DevOps
+
+* Docker
+* Docker Compose
+* Linux / Ubuntu
+* Git
+* GitHub
+
+---
+
+## 🌱 Key Features
+
+* 👨‍🌾 Farmer registration
+* 🛒 Buyer registration
+* 📦 Crop listing and lot management
+* 🔨 Live crop auctions
+* ⚡ Real-time bidding using WebSockets
+* 🔐 Email OTP verification
+* 🔑 JWT authentication
+* 👥 Role-based authorization
+* 🧾 Automatic invoice generation
+* 💳 Razorpay payment integration
+* 🚚 Truck booking
+* ❄️ Cold-storage discovery
+* 🌦️ Weather-risk checking
+* 🐳 Fully Dockerized microservices
+* 🗄️ Separate MySQL database per service
 
 ---
 
 ## 📁 Project Structure
 
 ```text
-farmatrade-main/
+Farmatrade1/
 │
 ├── auth-service/
 │   ├── src/
 │   ├── Dockerfile
-│   ├── docker-compose.dev.yml
-│   └── secrets/
+│   └── ...
 │
 ├── lot-service/
 │   ├── src/
 │   ├── Dockerfile
-│   └── docker-compose.yml
+│   └── ...
 │
 ├── bidding-service/
 │   ├── src/
 │   ├── Dockerfile
-│   └── docker-compose.dev.yml
+│   └── ...
 │
 ├── logistics-service/
 │   ├── src/
 │   ├── Dockerfile
-│   └── docker-compose.yml
+│   └── ...
 │
 ├── billing-service/
 │   ├── src/
 │   ├── Dockerfile
-│   └── docker-compose.yml
+│   └── ...
+│
+├── otp-service/
+│   ├── Controllers/
+│   ├── Services/
+│   ├── Data/
+│   ├── Models/
+│   ├── Middleware/
+│   ├── Migrations/
+│   ├── Program.cs
+│   ├── Dockerfile
+│   └── FarmaTrade-OTP-Service.csproj
 │
 ├── frontend/
 │   ├── src/
 │   ├── public/
-│   └── package.json
+│   ├── Dockerfile
+│   └── nginx.conf
 │
+├── docker-compose.yml
+├── .env.example
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## 🔌 Service Communication
+## 🐳 Docker Deployment
 
-The backend services communicate through the shared Docker network:
+The root `docker-compose.yml` is the **canonical full-stack Docker configuration**.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/AkashShinde65/Farmatrade1.git
+cd Farmatrade1
+```
+
+### 2. Configure environment variables
+
+Create `.env` from `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Configure required values such as:
 
 ```text
-                       ┌─────────────────┐
-                       │   Auth Service  │
-                       │      :8081      │
-                       └────────┬────────┘
-                                │
-                              JWT/JWKS
-                                │
-             ┌──────────────────┼──────────────────┐
-             │                  │                  │
-             ▼                  ▼                  ▼
-     ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
-     │ Lot Service  │   │   Bidding    │   │  Logistics   │
-     │    :8082     │   │   :8083      │   │    :8084     │
-     └──────────────┘   └──────┬───────┘   └──────────────┘
-                               │
-                               ▼
-                       ┌─────────────────┐
-                       │ Billing Service │
-                       │      :8085      │
-                       └────────┬────────┘
-                                │
-                                ▼
-                           Razorpay API
+Database credentials
+Internal service token
+JWT configuration
+Gmail username
+Gmail App Password
+Razorpay credentials
+API keys
+```
 
-                       ┌─────────────────┐
-                       │ React Frontend  │
-                       │   Nginx :80     │
-                       └─────────────────┘
-                                │
-                                ▼
-                           AWS EC2
+### 3. Build all services
+
+```bash
+docker compose build
+```
+
+### 4. Start the complete stack
+
+```bash
+docker compose up -d
+```
+
+### 5. Check service status
+
+```bash
+docker compose ps
+```
+
+Expected application ports:
+
+| Component         | Port |
+| ----------------- | ---: |
+| React Frontend    | 3000 |
+| Auth Service      | 8081 |
+| Lot Service       | 8082 |
+| Bidding Service   | 8083 |
+| Logistics Service | 8084 |
+| Billing Service   | 8085 |
+| OTP Service       | 8086 |
+
+---
+
+## 🔗 Service Communication
+
+Services communicate through the Docker network:
+
+```text
+                    ┌─────────────────┐
+                    │   Auth Service  │
+                    │      :8081      │
+                    └────────┬────────┘
+                             │
+                    REST / JWT / JWKS
+                             │
+        ┌────────────────────┼────────────────────┐
+        │                    │                    │
+        ▼                    ▼                    ▼
+ ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+ │ Lot Service  │    │   Bidding    │    │  Logistics   │
+ │    :8082     │    │    :8083     │    │    :8084     │
+ └──────────────┘    └──────────────┘    └──────────────┘
+                             │
+                         WebSockets
+                             │
+                             ▼
+                      ┌──────────────┐
+                      │   Billing    │
+                      │    :8085     │
+                      └──────────────┘
+
+                    Auth Service
+                         │
+                      REST API
+                         │
+                         ▼
+                  ┌──────────────┐
+                  │  OTP Service │
+                  │ ASP.NET Core │
+                  │    .NET 10   │
+                  │     :8086    │
+                  └──────┬───────┘
+                         │
+                     Gmail SMTP
 ```
 
 ---
 
-## 🔒 Security
+## 🗄️ Database Architecture
 
-FarmaTrade implements multiple security mechanisms:
+Each microservice maintains its own database.
 
-* JWT-based authentication
-* Role-based access control
-* RSA-based JWT signing
-* JWKS-based token validation
-* Service-to-service authentication
-* Environment-based configuration
-* Docker network isolation
-* Separate databases for each microservice
-* AWS EC2 Security Groups
-* Razorpay secure payment integration
-* CORS configuration for frontend-to-backend communication
+```text
+Auth Service       → farmatrade_auth_db
+Lot Service        → farmatrade_lot
+Bidding Service    → farmatrade_bidding
+Logistics Service  → farmatrade_logistics
+Billing Service    → farmatrade_billing
+OTP Service        → farmatrade_otp
+```
+
+This provides **database isolation between microservices**.
 
 ---
 
-## 🌱 Key Features
+## 🔐 Security
 
-* 👨‍🌾 Farmer registration and crop listing
-* 🛒 Buyer registration and crop discovery
-* 🔨 Live crop auctions
-* ⚡ Real-time bidding using WebSockets
-* 🧾 Automatic invoice generation
-* 💳 Razorpay payment integration
-* 🚚 Truck booking
-* ❄️ Cold-storage discovery
-* 🌦️ Weather-risk checking
-* 🔐 JWT authentication and role-based authorization
-* 🐳 Dockerized microservices
-* ☁️ AWS EC2 cloud deployment
-* 🌐 Nginx-based frontend deployment
-* 🗄️ Independent database per microservice
+FarmaTrade implements:
+
+* JWT-based authentication
+* RSA-based JWT signing
+* JWKS-based token validation
+* Role-based access control
+* Service-to-service authentication
+* BCrypt hashing
+* Environment-based configuration
+* Docker network isolation
+* Separate database per microservice
+* CORS configuration
+* Secure Razorpay integration
+* SMTP App Password authentication
+
+### Secrets
+
+**Never commit:**
+
+```text
+.env
+Gmail App Passwords
+Database passwords
+JWT private keys
+Razorpay secrets
+API keys
+Internal service tokens
+```
+
+Use `.env.example` for placeholders.
+
+---
+
+## 🧪 Local Testing
+
+Frontend:
+
+```text
+http://localhost:3000
+```
+
+Auth:
+
+```text
+http://localhost:8081
+```
+
+Lot:
+
+```text
+http://localhost:8082
+```
+
+Bidding:
+
+```text
+http://localhost:8083
+```
+
+Logistics:
+
+```text
+http://localhost:8084
+```
+
+Billing:
+
+```text
+http://localhost:8085
+```
+
+OTP health:
+
+```text
+http://localhost:8086/health
+```
+
+Check containers:
+
+```bash
+docker compose ps
+```
+
+Check logs:
+
+```bash
+docker compose logs --tail=100 auth-service
+docker compose logs --tail=100 otp-service
+```
+
+---
+
+## ☁️ Cloud Deployment
+
+The application is designed to be deployed using container-based cloud infrastructure.
+
+Planned production architecture:
+
+```text
+GitHub
+   ↓
+Container Registry
+   ↓
+Container-based Cloud Platform
+   ├── Auth Service
+   ├── Lot Service
+   ├── Bidding Service
+   ├── Logistics Service
+   ├── Billing Service
+   ├── OTP Service
+   └── React Frontend
+   ↓
+Managed MySQL
+   ↓
+HTTPS + Custom Domain
+```
+
+The production deployment can use environment-specific configuration without changing the application architecture.
 
 ---
 
 ## 🎯 Project Goal
 
-FarmaTrade aims to provide a **transparent, technology-driven agricultural marketplace** that reduces dependency on traditional commission-agent systems and gives farmers and buyers a direct platform for trading agricultural produce.
+FarmaTrade aims to provide a **transparent, technology-driven agricultural marketplace** that enables farmers and buyers to interact directly while supporting real-time auctions, logistics, payments, invoicing, and secure authentication.
 
 ---
 
-## 👨‍💻 Project Architecture
+## 👨‍💻 Developer
 
-**FarmaTrade — Full-Stack Agricultural Marketplace**
+**Akash Shinde**
 
-Built using:
+GitHub:
+https://github.com/AkashShinde65
 
-**Java • Spring Boot • Spring Security • React • MySQL • WebSockets • Docker • Docker Compose • Razorpay • AWS EC2 • Nginx • Linux**
+Project Repository:
+https://github.com/AkashShinde65/Farmatrade1
 
+---
 
-## OTP Microservice
-The project includes a separate ASP.NET Core OTP microservice under `otp-service/`.
-The Auth Service calls it over REST at `http://otp-service:8086` inside Docker.
-The OTP service owns the `farmatrade_otp` MySQL database and sends OTPs through Gmail SMTP.
+## 📌 Project Highlights
 
-### Full Docker stack
+**6 Microservices**
 
-Create `.env` from `.env.example`, fill in the required secrets, then run:
+* 5 Java Spring Boot services
+* 1 ASP.NET Core .NET 10 service
 
-```bash
-docker compose build
-docker compose up -d
-docker compose ps
+**Key technologies**
+
+```text
+Java 21
+Spring Boot
+Spring Security
+ASP.NET Core .NET 10
+React
+MySQL
+Entity Framework Core
+WebSockets
+STOMP
+JWT
+JWKS
+Docker
+Docker Compose
+Razorpay
+Gmail SMTP
+GitHub
 ```
 
-Frontend: `http://localhost:3000`
-Auth Service: `http://localhost:8081`
-OTP health: `http://localhost:8086/health`
-
-## Docker deployment
-
-Use the root `docker-compose.yml` as the canonical full-stack Compose file.
-
-1. Copy `.env.example` to `.env` and set the Gmail App Password and shared internal service token.
-2. Build all images:
-
-```bash
-docker compose build
-```
-
-3. Start the complete stack:
-
-```bash
-docker compose up -d
-```
-
-4. Check service status:
-
-```bash
-docker compose ps
-```
-
-The browser-facing services use:
-- Frontend: http://localhost:3000
-- Auth: http://localhost:8081
-- Lot: http://localhost:8082
-- Bidding: http://localhost:8083
-- Logistics: http://localhost:8084
-- Billing: http://localhost:8085
-- OTP: http://localhost:8086
-
-The OTP service communicates with its own `otp-mysql` database and with Auth through the `farmatrade-net` Docker network.
+> **FarmaTrade combines Java and .NET microservice development in a single full-stack production-oriented project.**
