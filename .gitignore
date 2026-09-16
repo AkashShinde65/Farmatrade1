@@ -26,3 +26,5 @@ dist/
 secrets/
 
 auth-service/keys/
+
+.env.azure
