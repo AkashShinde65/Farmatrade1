@@ -17,7 +17,7 @@ resource acr 'Microsoft.ContainerRegistry/registries@2022-12-01' = {
   }
   properties: {
     adminUserEnabled: false
-    anonymousPullEnabled: false
+    publicNetworkAccess: 'Enabled'
   }
 }
 
@@ -28,4 +28,5 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2026-01-01'
 }
 
 output acrLoginServer string = acr.properties.loginServer
+output acrResourceId string = acr.id
 output containerAppsEnvironmentId string = containerAppsEnvironment.id

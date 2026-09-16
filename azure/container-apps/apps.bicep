@@ -2,9 +2,6 @@ param location string
 param environmentId string
 param acrLoginServer string
 
-@description('Container Registry name')
-param acrName string
-
 resource authApp 'Microsoft.App/containerApps@2025-01-01' = {
   name: 'farmatrade-auth'
   location: location
@@ -12,12 +9,6 @@ resource authApp 'Microsoft.App/containerApps@2025-01-01' = {
     managedEnvironmentId: environmentId
     configuration: {
       activeRevisionsMode: 'Single'
-      registries: [
-        {
-          server: acrLoginServer
-          identity: 'system'
-        }
-      ]
     }
     template: {
       containers: [
@@ -25,19 +16,9 @@ resource authApp 'Microsoft.App/containerApps@2025-01-01' = {
           name: 'auth-service'
           image: '${acrLoginServer}/farmatrade-auth-service:latest'
           resources: {
-            cpu: 0.5
+            cpu: json('0.5')
             memory: '1Gi'
           }
-          probes: [
-            {
-              type: 'Liveness'
-              tcpSocket: {
-                port: 8081
-              }
-              initialDelaySeconds: 20
-              periodSeconds: 30
-            }
-          ]
         }
       ]
       scale: {
@@ -55,12 +36,6 @@ resource lotApp 'Microsoft.App/containerApps@2025-01-01' = {
     managedEnvironmentId: environmentId
     configuration: {
       activeRevisionsMode: 'Single'
-      registries: [
-        {
-          server: acrLoginServer
-          identity: 'system'
-        }
-      ]
     }
     template: {
       containers: [
@@ -68,7 +43,7 @@ resource lotApp 'Microsoft.App/containerApps@2025-01-01' = {
           name: 'lot-service'
           image: '${acrLoginServer}/farmatrade-lot-service:latest'
           resources: {
-            cpu: 0.5
+            cpu: json('0.5')
             memory: '1Gi'
           }
         }
@@ -88,12 +63,6 @@ resource biddingApp 'Microsoft.App/containerApps@2025-01-01' = {
     managedEnvironmentId: environmentId
     configuration: {
       activeRevisionsMode: 'Single'
-      registries: [
-        {
-          server: acrLoginServer
-          identity: 'system'
-        }
-      ]
     }
     template: {
       containers: [
@@ -101,7 +70,7 @@ resource biddingApp 'Microsoft.App/containerApps@2025-01-01' = {
           name: 'bidding-service'
           image: '${acrLoginServer}/farmatrade-bidding-service:latest'
           resources: {
-            cpu: 0.5
+            cpu: json('0.5')
             memory: '1Gi'
           }
         }
@@ -121,12 +90,6 @@ resource logisticsApp 'Microsoft.App/containerApps@2025-01-01' = {
     managedEnvironmentId: environmentId
     configuration: {
       activeRevisionsMode: 'Single'
-      registries: [
-        {
-          server: acrLoginServer
-          identity: 'system'
-        }
-      ]
     }
     template: {
       containers: [
@@ -134,7 +97,7 @@ resource logisticsApp 'Microsoft.App/containerApps@2025-01-01' = {
           name: 'logistics-service'
           image: '${acrLoginServer}/farmatrade-logistics-service:latest'
           resources: {
-            cpu: 0.5
+            cpu: json('0.5')
             memory: '1Gi'
           }
         }
@@ -154,12 +117,6 @@ resource billingApp 'Microsoft.App/containerApps@2025-01-01' = {
     managedEnvironmentId: environmentId
     configuration: {
       activeRevisionsMode: 'Single'
-      registries: [
-        {
-          server: acrLoginServer
-          identity: 'system'
-        }
-      ]
     }
     template: {
       containers: [
@@ -167,7 +124,7 @@ resource billingApp 'Microsoft.App/containerApps@2025-01-01' = {
           name: 'billing-service'
           image: '${acrLoginServer}/farmatrade-billing-service:latest'
           resources: {
-            cpu: 0.5
+            cpu: json('0.5')
             memory: '1Gi'
           }
         }
@@ -187,12 +144,6 @@ resource otpApp 'Microsoft.App/containerApps@2025-01-01' = {
     managedEnvironmentId: environmentId
     configuration: {
       activeRevisionsMode: 'Single'
-      registries: [
-        {
-          server: acrLoginServer
-          identity: 'system'
-        }
-      ]
     }
     template: {
       containers: [
@@ -200,7 +151,7 @@ resource otpApp 'Microsoft.App/containerApps@2025-01-01' = {
           name: 'otp-service'
           image: '${acrLoginServer}/farmatrade-otp-service:latest'
           resources: {
-            cpu: 0.25
+            cpu: json('0.25')
             memory: '0.5Gi'
           }
         }
@@ -223,14 +174,8 @@ resource frontendApp 'Microsoft.App/containerApps@2025-01-01' = {
       ingress: {
         external: true
         targetPort: 80
-        transport: 'auto'
+        transport: 'http'
       }
-      registries: [
-        {
-          server: acrLoginServer
-          identity: 'system'
-        }
-      ]
     }
     template: {
       containers: [
@@ -238,7 +183,7 @@ resource frontendApp 'Microsoft.App/containerApps@2025-01-01' = {
           name: 'frontend'
           image: '${acrLoginServer}/farmatrade-frontend:latest'
           resources: {
-            cpu: 0.25
+            cpu: json('0.25')
             memory: '0.5Gi'
           }
         }
