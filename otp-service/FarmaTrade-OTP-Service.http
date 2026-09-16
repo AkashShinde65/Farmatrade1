@@ -1,0 +1,24 @@
+@baseUrl = http://localhost:8086
+@internalToken = replace-with-shared-token
+
+### Health
+GET {{baseUrl}}/health
+
+### Send OTP
+POST {{baseUrl}}/api/otp/send
+Content-Type: application/json
+X-Internal-Token: {{internalToken}}
+
+{
+  "email": "test@gmail.com"
+}
+
+### Verify OTP
+POST {{baseUrl}}/api/otp/verify
+Content-Type: application/json
+X-Internal-Token: {{internalToken}}
+
+{
+  "email": "test@gmail.com",
+  "otp": "123456"
+}

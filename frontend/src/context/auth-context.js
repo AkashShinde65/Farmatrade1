@@ -36,8 +36,8 @@ export function AuthProvider({ children }) {
     return nextAuth;
   }, []);
 
-  // Registration doesn't return a token, so we log in right after with the same
-  // credentials rather than making the user submit a second form.
+  // Registration verifies the email OTP before creating the account, then we log in
+  // with the same credentials so the user does not submit a second form.
   const registerAndLogin = useCallback(
     async (role, details) => {
       await authService.register(role, details);

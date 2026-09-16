@@ -199,3 +199,7 @@ The service assigns `ADMIN` server-side and records the creator Admin ID in `cre
 - `401`: token is missing, invalid, expired, disabled, locked, or credentials are wrong.
 - `403`: token is valid but the role is not allowed.
 - Testcontainers skipped: start Docker and rerun `mvn clean verify`.
+
+
+## OTP Service Integration
+Farmer and buyer registration requests an email OTP through the Auth Service. Auth forwards the OTP request to the ASP.NET Core OTP service over the Docker network. The registration request then includes the six-digit OTP; Auth asks the OTP service to verify it before creating the user. Admin registration remains JWT-protected and is not OTP-gated.

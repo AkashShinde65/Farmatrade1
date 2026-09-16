@@ -20,17 +20,20 @@ public class RegistrationService {
     private final PasswordEncoder passwordEncoder;
     private final AadhaarValidationService aadhaarValidationService;
     private final AuditService auditService;
+    private final OtpServiceClient otpServiceClient;
 
     public RegistrationService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             AadhaarValidationService aadhaarValidationService,
-            AuditService auditService
+            AuditService auditService,
+            OtpServiceClient otpServiceClient
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.aadhaarValidationService = aadhaarValidationService;
         this.auditService = auditService;
+        this.otpServiceClient = otpServiceClient;
     }
 
     @Transactional
@@ -38,6 +41,13 @@ public class RegistrationService {
         validatePasswordStrength(request.password());
         String aadhaar = aadhaarValidationService.normalize(request.aadhaar());
         rejectDuplicates(request, aadhaar);
+
+        if (role != Role.ADMIN) {
+            if (request.otp() == null || request.otp().isBlank()) {
+                throw new IllegalArgumentException("OTP is required for registration");
+            }
+            otpServiceClient.verifyOtp(request.email(), request.otp());
+        }
 
         User user = new User();
         user.setFullName(request.fullName().trim());

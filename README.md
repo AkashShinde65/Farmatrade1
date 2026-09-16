@@ -508,3 +508,57 @@ FarmaTrade aims to provide a **transparent, technology-driven agricultural marke
 Built using:
 
 **Java • Spring Boot • Spring Security • React • MySQL • WebSockets • Docker • Docker Compose • Razorpay • AWS EC2 • Nginx • Linux**
+
+
+## OTP Microservice
+The project includes a separate ASP.NET Core OTP microservice under `otp-service/`.
+The Auth Service calls it over REST at `http://otp-service:8086` inside Docker.
+The OTP service owns the `farmatrade_otp` MySQL database and sends OTPs through Gmail SMTP.
+
+### Full Docker stack
+
+Create `.env` from `.env.example`, fill in the required secrets, then run:
+
+```bash
+docker compose build
+docker compose up -d
+docker compose ps
+```
+
+Frontend: `http://localhost:3000`
+Auth Service: `http://localhost:8081`
+OTP health: `http://localhost:8086/health`
+
+## Docker deployment
+
+Use the root `docker-compose.yml` as the canonical full-stack Compose file.
+
+1. Copy `.env.example` to `.env` and set the Gmail App Password and shared internal service token.
+2. Build all images:
+
+```bash
+docker compose build
+```
+
+3. Start the complete stack:
+
+```bash
+docker compose up -d
+```
+
+4. Check service status:
+
+```bash
+docker compose ps
+```
+
+The browser-facing services use:
+- Frontend: http://localhost:3000
+- Auth: http://localhost:8081
+- Lot: http://localhost:8082
+- Bidding: http://localhost:8083
+- Logistics: http://localhost:8084
+- Billing: http://localhost:8085
+- OTP: http://localhost:8086
+
+The OTP service communicates with its own `otp-mysql` database and with Auth through the `farmatrade-net` Docker network.

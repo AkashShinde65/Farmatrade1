@@ -1,1 +1,288 @@
-# Docker Compose configuration
+services:
+
+  auth-mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${AUTH_DB_NAME:-farmatrade_auth_db}
+      MYSQL_USER: ${AUTH_DB_USER:-farmatrade_auth_user}
+      MYSQL_PASSWORD: ${AUTH_DB_PASSWORD:-change-me-auth}
+      MYSQL_ROOT_PASSWORD: ${AUTH_DB_ROOT_PASSWORD:-change-me-auth-root}
+    volumes:
+      - auth-mysql-data:/var/lib/mysql
+    networks:
+      - auth-db
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  auth-service:
+    build: ./auth-service
+    image: farmatrade-auth-service:latest
+    depends_on:
+      auth-mysql:
+        condition: service_healthy
+      otp-service:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8081
+      DB_URL: jdbc:mysql://auth-mysql:3306/${AUTH_DB_NAME:-farmatrade_auth_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: ${AUTH_DB_USER:-farmatrade_auth_user}
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:-change-me-auth}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-internal-token}
+      OTP_SERVICE_BASE_URL: http://otp-service:8086
+      AUTH_JWT_ALLOW_EPHEMERAL_KEY: "true"
+      INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-Admin}
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-admin@example.com}
+      INITIAL_ADMIN_MOBILE: ${INITIAL_ADMIN_MOBILE:-9000000000}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-change-me-admin}
+      INITIAL_ADMIN_AADHAAR: ${INITIAL_ADMIN_AADHAAR:-900000000002}
+    ports:
+      - "8081:8081"
+    networks:
+      - farmatrade-net
+      - auth-db
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/actuator/health | grep -q 'UP'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  lot-mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: farmatrade_lot
+      MYSQL_ROOT_PASSWORD: ${LOT_DB_ROOT_PASSWORD:-change-me-lot-root}
+    volumes:
+      - lot-mysql-data:/var/lib/mysql
+    networks:
+      - lot-db
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  lot-service:
+    build: ./lot-service
+    image: farmatrade-lot-service:latest
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      lot-mysql:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8082
+      DB_URL: jdbc:mysql://lot-mysql:3306/farmatrade_lot?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: root
+      DB_PASSWORD: ${LOT_DB_ROOT_PASSWORD:-change-me-lot-root}
+    ports:
+      - "8082:8082"
+    networks:
+      - farmatrade-net
+      - lot-db
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8082/actuator/health | grep -q 'UP'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  bidding-mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: farmatrade_bidding
+      MYSQL_ROOT_PASSWORD: ${BIDDING_DB_ROOT_PASSWORD:-bidding_root_pass}
+    volumes:
+      - bidding-mysql-data:/var/lib/mysql
+    networks:
+      - bidding-db
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  bidding-service:
+    build: ./bidding-service
+    image: farmatrade-bidding-service:latest
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      bidding-mysql:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8083
+      DB_HOST: bidding-mysql
+      DB_PORT: 3306
+      DB_NAME: farmatrade_bidding
+      DB_USERNAME: root
+      DB_PASSWORD: ${BIDDING_DB_ROOT_PASSWORD:-bidding_root_pass}
+    ports:
+      - "8083:8083"
+    networks:
+      - farmatrade-net
+      - bidding-db
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8083/actuator/health | grep -q 'UP'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  logistics-mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: farmatrade_logistics
+      MYSQL_ROOT_PASSWORD: ${LOGISTICS_DB_ROOT_PASSWORD:-change-me-logistics-root}
+    volumes:
+      - logistics-mysql-data:/var/lib/mysql
+    networks:
+      - logistics-db
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  logistics-service:
+    build: ./logistics-service
+    image: farmatrade-logistics-service:latest
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      logistics-mysql:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8084
+      DB_URL: jdbc:mysql://logistics-mysql:3306/farmatrade_logistics?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: root
+      DB_PASSWORD: ${LOGISTICS_DB_ROOT_PASSWORD:-change-me-logistics-root}
+    ports:
+      - "8084:8084"
+    networks:
+      - farmatrade-net
+      - logistics-db
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8084/actuator/health | grep -q 'UP'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  billing-mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: farmatrade_billing
+      MYSQL_ROOT_PASSWORD: ${BILLING_DB_ROOT_PASSWORD:-change-me-billing-root}
+    volumes:
+      - billing-mysql-data:/var/lib/mysql
+    networks:
+      - billing-db
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  billing-service:
+    build: ./billing-service
+    image: farmatrade-billing-service:latest
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      billing-mysql:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8085
+      DB_URL: jdbc:mysql://billing-mysql:3306/farmatrade_billing?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: root
+      DB_PASSWORD: ${BILLING_DB_ROOT_PASSWORD:-change-me-billing-root}
+    ports:
+      - "8085:8085"
+    networks:
+      - farmatrade-net
+      - billing-db
+    healthcheck:
+      test: ["CMD", "sh", "-c", "pgrep -f 'java -jar app.jar' >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  otp-mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ${OTP_DB_NAME:-farmatrade_otp}
+      MYSQL_USER: ${OTP_DB_USER:-otp_user}
+      MYSQL_PASSWORD: ${OTP_DB_PASSWORD:-change-me-otp}
+      MYSQL_ROOT_PASSWORD: ${OTP_DB_ROOT_PASSWORD:-change-me-otp-root}
+    volumes:
+      - otp-mysql-data:/var/lib/mysql
+    networks:
+      - otp-db
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  otp-service:
+    build: ./otp-service
+    image: farmatrade-otp-service:latest
+    depends_on:
+      otp-mysql:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:8086
+      ConnectionStrings__DefaultConnection: Server=otp-mysql;Port=3306;Database=${OTP_DB_NAME:-farmatrade_otp};User=${OTP_DB_USER:-otp_user};Password=${OTP_DB_PASSWORD:-change-me-otp};
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-change-me-internal-token}
+      EmailSettings__Username: ${GMAIL_USERNAME}
+      EmailSettings__AppPassword: ${GMAIL_APP_PASSWORD}
+      EmailSettings__FromName: FarmaTrade
+      EmailSettings__Port: 587
+      EmailSettings__SmtpServer: smtp.gmail.com
+    ports:
+      - "8086:8086"
+    networks:
+      - farmatrade-net
+      - otp-db
+    healthcheck:
+      test: ["CMD", "dotnet", "--info"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        REACT_APP_AUTH_URL: http://localhost:8081
+    image: farmatrade-frontend:latest
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+    networks:
+      - farmatrade-net
+
+volumes:
+  auth-mysql-data:
+  lot-mysql-data:
+  bidding-mysql-data:
+  logistics-mysql-data:
+  billing-mysql-data:
+  otp-mysql-data:
+
+networks:
+  farmatrade-net:
+  auth-db:
+  lot-db:
+  bidding-db:
+  logistics-db:
+  billing-db:
+  otp-db:

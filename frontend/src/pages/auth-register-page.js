@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/auth-hook';
+import * as authService from '../services/auth-service';
 
 const HOME_PATH_BY_ROLE = {
   FARMER: '/farmer/dashboard',
@@ -19,15 +20,34 @@ export function AuthRegisterPage() {
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [aadhaar, setAadhaar] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  async function handleSendOtp() {
+    setError('');
+    setOtpSending(true);
+    try {
+      await authService.sendRegistrationOtp(email);
+      setOtpSent(true);
+    } catch (err) {
+      setError(err.message || 'Unable to send OTP.');
+    } finally {
+      setOtpSending(false);
+    }
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
     setSubmitting(true);
     try {
-      await registerAndLogin(role, { fullName, email, mobile, password, aadhaar });
+      if (!otpSent || otp.length !== 6) {
+        throw new Error('Please send the OTP and enter the 6-digit code.');
+      }
+      await registerAndLogin(role, { fullName, email, mobile, password, aadhaar, otp });
       navigate(HOME_PATH_BY_ROLE[role]);
     } catch (err) {
       setError(err.message || 'Registration failed.');
@@ -105,6 +125,29 @@ export function AuthRegisterPage() {
                 required
               />
               <span className="field-hint">12 digits.</span>
+            </div>
+            <div className="field">
+              <label className="field-label" htmlFor="otp">Email OTP</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  id="otp"
+                  className="input"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  required
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleSendOtp}
+                  disabled={otpSending || !email}
+                >
+                  {otpSending ? 'Sending…' : otpSent ? 'Resend OTP' : 'Send OTP'}
+                </button>
+              </div>
             </div>
             {error ? <p className="form-error">{error}</p> : null}
             <button type="submit" className="btn btn-primary" disabled={submitting}>

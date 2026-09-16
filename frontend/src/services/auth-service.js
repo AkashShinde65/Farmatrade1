@@ -14,12 +14,20 @@ const REGISTER_PATH_BY_ROLE = {
   ADMIN: '/api/auth/register/admin',
 };
 
+export function sendRegistrationOtp(email) {
+  return client.post('/api/auth/otp/send', { email });
+}
+
 export function login(role, { identifier, password }) {
   return client.post(LOGIN_PATH_BY_ROLE[role], { identifier, password });
 }
 
-export function register(role, { fullName, email, mobile, password, aadhaar }, token) {
-  return client.post(REGISTER_PATH_BY_ROLE[role], { fullName, email, mobile, password, aadhaar }, token);
+export function register(role, { fullName, email, mobile, password, aadhaar, otp }, token) {
+  return client.post(
+    REGISTER_PATH_BY_ROLE[role],
+    { fullName, email, mobile, password, aadhaar, otp },
+    token
+  );
 }
 
 export function getMe(token) {

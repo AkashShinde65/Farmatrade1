@@ -10,6 +10,16 @@ public record RegisterRequest(
         @NotBlank @Email @Size(max = 254) String email,
         @NotBlank @Pattern(regexp = "^[0-9]{10,15}$", message = "mobile must contain 10 to 15 digits") String mobile,
         @NotBlank @Size(min = 10, max = 72) String password,
-        @NotBlank @Pattern(regexp = "^[0-9]{12}$", message = "aadhaar must contain exactly 12 digits") String aadhaar
+        @NotBlank @Pattern(regexp = "^[0-9]{12}$", message = "aadhaar must contain exactly 12 digits") String aadhaar,
+        @Pattern(regexp = "^[0-9]{6}$", message = "otp must contain exactly 6 digits") String otp
 ) {
+    public RegisterRequest(
+            String fullName,
+            String email,
+            String mobile,
+            String password,
+            String aadhaar
+    ) {
+        this(fullName, email, mobile, password, aadhaar, null);
+    }
 }

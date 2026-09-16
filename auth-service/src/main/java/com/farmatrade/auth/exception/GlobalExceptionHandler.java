@@ -35,6 +35,18 @@ public class GlobalExceptionHandler {
                 .body(error("invalid_authentication", "Invalid credentials"));
     }
 
+
+    @ExceptionHandler(OtpServiceException.class)
+    ResponseEntity<Map<String, Object>> otpService(OtpServiceException ex) {
+        HttpStatus status = switch (ex.status()) {
+            case 400 -> HttpStatus.BAD_REQUEST;
+            case 429 -> HttpStatus.TOO_MANY_REQUESTS;
+            default -> HttpStatus.BAD_GATEWAY;
+        };
+        String code = ex.status() == 400 ? "invalid_otp" : "otp_service_error";
+        return ResponseEntity.status(status).body(error(code, ex.getMessage()));
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     ResponseEntity<Map<String, Object>> forbidden(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
