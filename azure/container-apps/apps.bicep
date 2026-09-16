@@ -10,7 +10,7 @@ resource authApp 'Microsoft.App/containerApps@2025-01-01' = {
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: {
-        external: true
+        external: false
         targetPort: 8081
         transport: 'http'
       }
@@ -42,7 +42,7 @@ resource lotApp 'Microsoft.App/containerApps@2025-01-01' = {
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: {
-        external: true
+        external: false
         targetPort: 8082
         transport: 'http'
       }
@@ -74,7 +74,7 @@ resource biddingApp 'Microsoft.App/containerApps@2025-01-01' = {
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: {
-        external: true
+        external: false
         targetPort: 8083
         transport: 'http'
       }
@@ -106,7 +106,7 @@ resource logisticsApp 'Microsoft.App/containerApps@2025-01-01' = {
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: {
-        external: true
+        external: false
         targetPort: 8084
         transport: 'http'
       }
@@ -138,7 +138,7 @@ resource billingApp 'Microsoft.App/containerApps@2025-01-01' = {
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: {
-        external: true
+        external: false
         targetPort: 8085
         transport: 'http'
       }
@@ -170,7 +170,7 @@ resource otpApp 'Microsoft.App/containerApps@2025-01-01' = {
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: {
-        external: true
+        external: false
         targetPort: 8086
         transport: 'http'
       }
